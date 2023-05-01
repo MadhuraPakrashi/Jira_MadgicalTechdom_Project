@@ -2,7 +2,7 @@
 
 This Python code defines a class called "Jira" and performs the following tasks:
 
-1. Connects to a MySQL database, retrieves data from a table called "tickets_table" and prints the data.
+1.Connects to a MySQL database, retrieves data from a table called "tickets_table" and prints the data.
 
 2.Sends an HTTP GET request to the Jira REST API to fetch a list of Jira tickets.
 
