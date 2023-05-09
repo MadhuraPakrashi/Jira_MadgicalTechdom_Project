@@ -37,10 +37,14 @@ class Jira:
                 host='localhost',
                 database='jiratickets'
             )
-            self.mycursor = self.mysqldb.cursor(buffered=True)
+            if self.mysqldb.is_connected():
+                print("Database connection established successfully.")
+                self.mycursor = self.mysqldb.cursor(buffered=True)
+            else:
+                print("Failed to connect to the database.")
 
-        except Exception as e:
-            print("My database is not connected", e)
+        except mysql.connector.Error as e:
+            print("Error while connecting to MySQL", e)
 
         # Create tkinter objects
         self.label = tk.Label(master, text="Jira Ticket Management")
@@ -49,21 +53,70 @@ class Jira:
         self.get_tickets_button = tk.Button(master, text="Get Tickets", command=self.get_tickets_from_database)
         self.get_tickets_button.pack()
 
-        self.refresh_button = tk.Button(master, text="Refresh Tickets", command=self.get_all_jira_tickets)
+        self.refresh_button = tk.Button(master, text="Refresh Tickets",
+                                        command=lambda: [self.get_all_jira_tickets(), self.get_tickets_from_database()])
         self.refresh_button.pack()
+
+        self.tickets_listbox = tk.Listbox(master, height=300, width=300)
+        self.tickets_listbox.pack()
 
         self.quit_button = tk.Button(master, text="Quit", command=master.quit)
         self.quit_button.pack()
 
-    def get_tickets_from_database(self):
-        """
-        This method retrieves tickets from the MySQL database and prints them to the console.
-        """
-        self.mycursor.execute("select * from tickets_table")
-        myresult = self.mycursor.fetchall()
+    def get_issues(self, jql, max_results=20, start_at=0):
+        issues = []
+        total = None
+        while total is None or start_at < total:
+            params = {
+                    'jql': jql,
+                    'maxResults': max_results,
+                    'startAt': start_at
+                }
+            response = requests.get(self.jira_url, params=params, headers=self.header, auth=self.auth)
+            if response.status_code == 200:
+                data = json.loads(response.text)
+                issues.extend(data['issues'])
+                total = data['total']
+                start_at += max_results
+            else:
+                print(f"Error fetching issues: {response.status_code} {response.text}")
+                break
+        return issues
 
-        for x in myresult:
-            print(x)
+    def get_tickets_from_database(self, page_number=1, results_per_page=5):
+        """
+        This method retrieves tickets from the MySQL database based on the page number and results per page,
+        and displays them in the GUI window.
+        """
+        start_index = (page_number - 1) * results_per_page
+        end_index = start_index + results_per_page
+
+        # Get the total number of tickets in the database
+        self.mycursor.execute("SELECT COUNT(*) FROM tickets_table")
+        total_tickets = self.mycursor.fetchone()[0]
+
+        # Clearing the current listbox content
+        self.tickets_listbox.delete(0, tk.END)
+
+        if start_index >= total_tickets:
+            # If the starting index is greater than or equal to the total number of tickets, there are no more tickets to display
+            self.tickets_listbox.insert(tk.END, "No more tickets to display.")
+        else:
+            # Limit the query to the specified page number and results per page
+            self.mycursor.execute(f"SELECT * FROM tickets_table LIMIT {start_index}, {results_per_page}")
+            myresult = self.mycursor.fetchall()
+
+            # Inserting each row of data into the listbox
+            for row in myresult:
+                # Joining the row into a string to insert into the listbox
+                row_str = " | ".join(str(r) for r in row)
+                self.tickets_listbox.insert(tk.END, row_str)
+
+            # Display the current page number and total number of tickets
+            current_page = (start_index // results_per_page) + 1
+            total_pages = (total_tickets // results_per_page) + (1 if total_tickets % results_per_page > 0 else 0)
+            self.label.config(
+                text=f"Jira Ticket Management - Page {current_page} of {total_pages}, Total Tickets: {total_tickets}")
 
     def get_all_jira_tickets(self):
         """
@@ -111,11 +164,19 @@ root = tk.Tk()
 app = Jira(master=root)
 # Start the Tkinter event loop
 root.mainloop()
-# Create another Jira object and pass the root window as a parameter to its constructor
-obj = Jira(master=root)
-# Call the get_tickets_from_database method of the Jira object to retrieve tickets from the database
+
+# Create another Tkinter root window
+root2 = tk.Tk()
+# Create another Jira object and pass the new root window as a parameter to its constructor
+obj = Jira(master=root2)
+
+obj.get_issues(jql = "PROJECT = PAKRASHI")
+# Call the get_tickets_from_database method of the Jira object to retrieve tickets from the databas
 obj.get_tickets_from_database()
+
+
 # Call the get_all_jira_tickets method of the Jira object to retrieve all Jira tickets
 obj.get_all_jira_tickets()
+
 
 
