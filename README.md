@@ -1,11 +1,14 @@
-This code is a Python program that connects to Jira and MySQL databases, and retrieves, stores and manages Jira tickets. It uses tkinter for the GUI interface.
+    A breakdown of the code is given: 
+    1. The necessary libraries are imported: tkinter for GUI, base64 for encoding Jira credentials, requests for making HTTP requests, json for working with JSON data, and mysql.connector for interacting with MySQL database.
+  
+    2. The Jira class is defined, which provides methods for retrieving and managing Jira tickets.
 
-The code defines a Jira class that contains several methods to retrieve and manage Jira tickets. In the constructor, the program initializes various parameters such as the Jira credentials, header, and authentication parameters, and the MySQL database connection parameters.
+    3. The Jira class constructor (init) initializes the GUI window and sets up Jira credentials and MySQL database connection.
 
-The class contains the following methods:
+    4. Various GUI elements such as labels, buttons, and listbox are created using tkinter.
 
-  1.  __init__: Initializes the Jira class with necessary parameters and sets up the tkinter interface.
-  2.  get_tickets_from_database: Retrieves tickets from the MySQL database and prints them to the console.
-  3.  get_all_jira_tickets: Retrieves all Jira tickets and inserts them into the MySQL database.
+    5. The Jira class provides methods for fetching Jira tickets, displaying them in the GUI, and interacting with the MySQL database.
 
-The code creates a tkinter root window and passes it to the Jira constructor to display the tkinter GUI. It then creates an object of the Jira class and calls its methods to retrieve tickets from the database and Jira.
+    6. The script creates two instances of the Jira class, each associated with a different tkinter root window.
+
+    7. The methods of the Jira object are called to interact with Jira and the MySQL database, such as retrieving tickets, showing previous/next pages, and getting all Jira tickets.
