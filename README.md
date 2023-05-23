@@ -1,4 +1,4 @@
-The provided code is a Python script that demonstrates the use of the Jira API and MySQL database to manage Jira tickets. Here is a     description of the code:
+The provided code is a Python script that demonstrates the use of the Jira API and MySQL database to manage Jira tickets and executes Task 2 of my project. Here is a description of the code:
 
    1.The code begins by importing the necessary libraries, including tkinter for creating a GUI, base64 for encoding credentials, requests for making API requests, json for working with JSON data, and mysql.connector for interacting with a MySQL database.
 
