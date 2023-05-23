@@ -209,6 +209,30 @@ class Jira:
 
         self.mycursor.close()
 
+    def change_ticket_status(self, ticket_key, comment):
+        """
+        This method changes the status of a ticket from 'Open' to 'Close' and adds a comment in Jira using the API.
+        :param ticket_key: The key of the ticket to update.
+        :param comment: The comment to add while updating the ticket status.
+        """
+        # Jira API endpoint for updating an issue
+        url = f"https://pakrashi.atlassian.net/rest/api/3/issue/{ticket_key}/transitions"
+
+        # Request payload with the updated status and comment
+        payload = json.dumps( {
+            "transition": {
+                "id": "41"
+            }
+        }
+         )
+
+
+        response = requests.post(url, data =payload, headers=self.header, auth=self.auth)
+
+        if response.status_code == 204:
+            print(f"Ticket {ticket_key} status updated successfully.")
+        else:
+            print(f"Error updating ticket status: {response.status_code} {response.text}")
 
 # Create a Tkinter root window
 root = tk.Tk()
@@ -232,6 +256,4 @@ obj.get_tickets_from_database(current_page=1)
 # Call the get_all_jira_tickets method of the Jira object to retrieve all Jira tickets
 obj.get_all_jira_tickets()
 
-
-
-
+obj.change_ticket_status('PAK-6', 'The ticket has been closed')
