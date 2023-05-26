@@ -1,5 +1,4 @@
 The code consists of a Python Flask application that interacts with Jira and a MySQL database to retrieve and manage Jira tickets. The main components of the code are as follows:
-
     1. Importing necessary libraries:
         base64: For encoding Jira credentials.
         requests: For making HTTP requests to the Jira API.
@@ -12,7 +11,7 @@ The code consists of a Python Flask application that interacts with Jira and a M
         An instance of the Flask application is created with the name app.
 
     3. Class Jira:
-        This class provides methods to retrieve and manage Jira tickets.
+       This class provides methods to retrieve and manage Jira tickets.
     3.1. Initialization (__init__ method):
         Initializes the Jira class and sets up the necessary attributes.
         Sets the Jira URL, Jira credentials, MySQL database connection details, and page-related variables.
