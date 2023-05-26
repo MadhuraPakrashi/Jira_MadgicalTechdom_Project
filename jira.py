@@ -6,7 +6,7 @@ from requests.auth import HTTPBasicAuth
 from flask import Flask, render_template, request
 import mysql.connector
 
-# Create a Flask application instance
+# Creating a Flask application instance
 app = Flask(__name__)
 
 class Jira:
@@ -18,7 +18,7 @@ class Jira:
         This method initializes the Jira class.
 
         """
-        # Initialize the results_per_page_entry attribute
+        # Initializing the results_per_page_entry attribute
         self.results_per_page_entry = None
 
         # Jira credentials
@@ -33,7 +33,7 @@ class Jira:
                            f"{self.jira_user}:{self.jira_api_token}".encode()).decode()}
         self.auth = HTTPBasicAuth(self.gmail, self.jira_api_token)
 
-        # Connect to the MySQL database
+        # Connecting to the MySQL database
         try:
             self.mysqldb = mysql.connector.connect(
                 user='root',
@@ -50,7 +50,7 @@ class Jira:
         except mysql.connector.Error as e:
             print("Error while connecting to MySQL", e)
 
-        # Initialize page variables
+        # Initializing page variables
         self.current_page = 1
         self.total_pages = 0
 
@@ -100,7 +100,7 @@ class Jira:
         """
         results_per_page = int(results_per_page_entry) if results_per_page_entry else 10
 
-        # Get the total number of tickets in the database
+        # Getting the total number of tickets in the database
         try:
             self.mycursor.execute("SELECT COUNT(*) FROM tickets_table")
             total_tickets = self.mycursor.fetchone()[0]
@@ -108,7 +108,7 @@ class Jira:
             print("Error while executing SQL query:", e)
             return []
 
-        # Calculate the total number of pages and store the current page number
+        # Calculating the total number of pages and store the current page number
         self.total_pages = (total_tickets // results_per_page) + (1 if total_tickets % results_per_page > 0 else 0)
         if current_page is not None:
             self.current_page = current_page
@@ -121,7 +121,7 @@ class Jira:
                 return []
             else:
                 try:
-                    # Limit the query to the specified page number and results per page
+                    # Limiting the query to the specified page number and results per page
                     query = "SELECT * FROM tickets_table LIMIT %s, %s"
                     params = (start_index, results_per_page)
                     self.mycursor.execute(query, params)
@@ -143,7 +143,7 @@ class Jira:
         total = 1
 
         while start_at < total:
-            # fetch tickets for the current page
+            # fetching tickets for the current page
             url = f"{self.jira_url}?startAt={start_at}&maxResults={max_results}"
             response = requests.get(url, headers=self.header, auth=self.auth)
             tickets = json.loads(response.text)
@@ -180,10 +180,10 @@ class Jira:
                 except Exception as e:
                     print('Your program has an error', e)
 
-            # clear data list for next page
+            # clearing data list for next page
             data.clear()
 
-            # increment start_at for the next page
+            # incrementing start_at for the next page
             start_at += max_results
 
         self.mycursor.close()
@@ -197,7 +197,7 @@ class Jira:
         # Jira API endpoint for updating an issue
         url = f"https://pakrashi.atlassian.net/rest/api/3/issue/{ticket_key}/transitions"
 
-        # Request payload with the updated status and comment
+        # Requesting payload with the updated status and comment
         payload = json.dumps( {
             "transition": {
                 "id": "41"
@@ -213,27 +213,44 @@ class Jira:
         else:
             print(f"Error updating ticket status: {response.status_code} {response.text}")
 
+    def fetch_and_store_tickets(self):
+        """
+        This method fetches new tickets from Jira and stores them in the MySQL database.
+        """
+        # Clearing existing tickets from the database
+        try:
+            self.mycursor.execute("TRUNCATE TABLE tickets_table")
+            self.mysqldb.commit()
+        except mysql.connector.Error as e:
+            print("Error while truncating tickets_table:", e)
 
-# Instantiate the Jira class
+        # Fetch all Jira tickets and insert them into the database
+        self.get_all_jira_tickets()
+
+
+# Instantiating the Jira class
 jira = Jira()
 
 
 @app.route('/')
 def show_tickets():
     try:
-        # Get the results_per_page_entry value from the query parameters
+        # Getting the results_per_page_entry value from the query parameters
         results_per_page_entry = request.args.get('results_per_page_entry', 10)
 
-        # Retrieve tickets from the database using the jira object
-        tickets = jira.get_tickets_from_database(results_per_page_entry, jira.current_page)
-        print(tickets)
+        # Checking if the "Fetch Tickets" button was clicked
+        if 'fetch_tickets' in request.args:
+            # Fetching new tickets from Jira and store them in the database
+            jira.fetch_and_store_tickets()
 
-        # Render the template with the retrieved tickets
+        # Retrieving tickets from the database using the jira object
+        tickets = jira.get_tickets_from_database(results_per_page_entry, jira.current_page)
+
+        # Rendering the template with the retrieved tickets
         return render_template('tickets.html', table_data=tickets)
 
     except mysql.connector.Error as e:
         print("Error while connecting to MySQL", e)
-
 
 if __name__ == '__main__':
     app.debug = True
