@@ -246,7 +246,7 @@ def show_tickets():
         # Retrieving tickets from the database using the jira object
         tickets = jira.get_tickets_from_database(results_per_page_entry, jira.current_page)
 
-        # Rendering the template with the retrieved tickets
+        # Rendering the template with  retrieved tickets
         return render_template('tickets.html', table_data=tickets)
 
     except mysql.connector.Error as e:
