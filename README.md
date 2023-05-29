@@ -50,7 +50,6 @@ The code consists of a Python Flask application that interacts with Jira and a M
         Calls the get_tickets_from_database method to retrieve tickets from the database based on the page number and results per page.
         Checks if the "Fetch Tickets" button was clicked and fetches new tickets from Jira if so.
         Renders the 'tickets.html' template with the retrieved tickets.
-
     Main execution:
         The script runs the Flask application if executed directly.
 
