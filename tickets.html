@@ -5,6 +5,12 @@
 </head>
 <body>
     <h1>Tickets Table</h1>
+    <form action="/" method="get">
+        <label for="results_per_page_entry">Results per page:</label>
+        <input type="number" id="results_per_page_entry" name="results_per_page_entry" value="{{ results_per_page_entry }}">
+        <input type="submit" value="Change">
+        <input type="submit" name="fetch_tickets" value="Fetch Tickets">
+    </form>
     <table>
         <tr>
             <th>Ticket Key</th>
@@ -16,17 +22,17 @@
             <th>Creator Email</th>
             <th>Created Date</th>
         </tr>
-        {% for row in table_data %}
-        <tr>
-            <td>{{ row[0] }}</td>
-            <td>{{ row[1] }}</td>
-            <td>{{ row[2] }}</td>
-            <td>{{ row[3] }}</td>
-            <td>{{ row[4] }}</td>
-            <td>{{ row[5] }}</td>
-            <td>{{ row[6] }}</td>
-            <td>{{ row[7] }}</td>
-        </tr>
+        {% for ticket in table_data %}
+            <tr>
+                <td><a href="https://pakrashi.atlassian.net/browse/{{ ticket[0] }}">{{ ticket[0] }}</a></td>
+                <td>{{ ticket[1] }}</td>
+                <td>{{ ticket[2] }}</td>
+                <td>{{ ticket[3] }}</td>
+                <td>{{ ticket[4] }}</td>
+                <td>{{ ticket[5] }}</td>
+                <td>{{ ticket[6] }}</td>
+                <td>{{ ticket[7] }}</td>
+            </tr>
         {% endfor %}
     </table>
 </body>
