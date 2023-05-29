@@ -6,6 +6,7 @@ from requests.auth import HTTPBasicAuth
 from flask import Flask, render_template, request
 import mysql.connector
 
+
 # Creating a Flask application instance
 app = Flask(__name__)
 
@@ -50,7 +51,7 @@ class Jira:
         except mysql.connector.Error as e:
             print("Error while connecting to MySQL", e)
 
-        # Initializing page variables
+        #Initializing the page variables
         self.current_page = 1
         self.total_pages = 0
 
@@ -236,7 +237,7 @@ jira = Jira()
 def show_tickets():
     try:
         # Getting the results_per_page_entry value from the query parameters
-        results_per_page_entry = request.args.get('results_per_page_entry', 10)
+        results_per_page_entry = int(request.args.get('results_per_page_entry', 10))
 
         # Checking if the "Fetch Tickets" button was clicked
         if 'fetch_tickets' in request.args:
@@ -246,8 +247,8 @@ def show_tickets():
         # Retrieving tickets from the database using the jira object
         tickets = jira.get_tickets_from_database(results_per_page_entry, jira.current_page)
 
-        # Rendering the template with retrieved tickets
-        return render_template('tickets.html', table_data=tickets)
+        #Rendering the template with retrieved tickets
+        return render_template('tickets.html', table_data=tickets, results_per_page_entry=results_per_page_entry)
 
     except mysql.connector.Error as e:
         print("Error while connecting to MySQL", e)
