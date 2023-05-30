@@ -117,7 +117,7 @@ class Jira:
 
     def get_all_jira_tickets(self):
         """
-        This method retrieves all Jira tickets and inserts them into the MySQL database.
+        This method retrieves all Jira tickets and returns them as a list.
         """
         data = []
         start_at = 0
@@ -125,50 +125,30 @@ class Jira:
         total = 1
 
         while start_at < total:
-            # fetching tickets for the current page
             url = f"{self.jira_url}?startAt={start_at}&maxResults={max_results}"
             response = requests.get(url, headers=self.header, auth=self.auth)
-            tickets = json.loads(response.text)
-            all_issues = tickets["issues"]
-            total = tickets["total"]
+            if response.status_code == 200:
+                tickets = json.loads(response.text)
+                all_issues = tickets["issues"]
+                total = tickets["total"]
 
-            for issue in all_issues:
-                date = issue["fields"]["updated"].split("T")
-                created_date = issue["fields"]["created"].split("T")
-                dict_obj = {"Tickets_key": issue["key"], "Title": issue["fields"]["summary"],
-                            "Project_name": issue["fields"]["project"]["name"],
-                            "Priority": issue["fields"]["priority"]["name"],
-                            "Updated_date": date[0], "Ticket_status": issue["fields"]["status"]["name"],
-                            "Creator_email": issue["fields"]["creator"]["emailAddress"],
-                            "Created_date": created_date[0]}
-                data.append(dict_obj)
+                for issue in all_issues:
+                    date = issue["fields"]["updated"].split("T")
+                    created_date = issue["fields"]["created"].split("T")
+                    dict_obj = {"Tickets_key": issue["key"], "Title": issue["fields"]["summary"],
+                                "Project_name": issue["fields"]["project"]["name"],
+                                "Priority": issue["fields"]["priority"]["name"],
+                                "Updated_date": date[0], "Ticket_status": issue["fields"]["status"]["name"],
+                                "Creator_email": issue["fields"]["creator"]["emailAddress"],
+                                "Created_date": created_date[0]}
+                    data.append(dict_obj)
+            else:
+                print(f"Error fetching issues: {response.status_code} {response.text}")
+                break
 
-            for row in data:
-                sql = "INSERT INTO tickets_table (Tickets_key, Title, Project_name, Priority, Updated_date, Ticket_status, Creator_email, Created_date) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE Tickets_key=VALUES(Tickets_key), Title=VALUES(Title), Project_name=VALUES(Project_name), Priority=VALUES(Priority), Updated_date=VALUES(Updated_date), Ticket_status=VALUES(Ticket_status), Creator_email=VALUES(Creator_email), Created_date=VALUES(Created_date)"
-                val = (
-                    row['Tickets_key'],
-                    row['Title'],
-                    row['Project_name'],
-                    row['Priority'],
-                    row['Updated_date'],
-                    row['Ticket_status'],
-                    row['Creator_email'],
-                    row['Created_date']
-                )
-
-                try:
-                    self.mycursor.execute(sql, val)
-                    self.mysqldb.commit()
-                except Exception as e:
-                    print('Your program has an error', e)
-
-            # Clearing the data list for the next page
-            data.clear()
-
-            # Incrementing start_at for the next page
             start_at += max_results
 
-        self.mycursor.close()
+        return data
 
     def change_ticket_status(self, ticket_key, comment):
         """
@@ -199,17 +179,101 @@ class Jira:
         self.results_per_page_entry = results_per_page_entry
 
         try:
-            self.mycursor.execute("TRUNCATE TABLE tickets_table")
+            if not self.mysqldb.is_connected():
+                self.mysqldb.ping(reconnect=True)
+                self.mysqldb = mysql.connector.connect(
+                    user='root',
+                    password='pakrashimadhura@23',
+                    host='localhost',
+                    database='jiratickets'
+                )
+                self.mycursor = self.mysqldb.cursor(buffered=True)
+            print("Cursor connection status after reconnecting:", self.mysqldb.is_connected())
+
+            # Get the existing ticket keys from the database
+            self.mycursor.execute("SELECT Tickets_key FROM tickets_table")
+            existing_ticket_keys = [row[0] for row in self.mycursor.fetchall()]
+
+            # Fetch tickets from Jira
+            data = self.get_all_jira_tickets()
+
+            # Update or insert each ticket
+            for ticket in data:
+                ticket_key = ticket['Tickets_key']
+                if ticket_key in existing_ticket_keys:
+                    # Ticket already exists in the database, update it
+                    sql = """
+                    UPDATE tickets_table
+                    SET Title = %s, Project_name = %s, Priority = %s,
+                    Updated_date = %s, Ticket_status = %s, Creator_email = %s,
+                    Created_date = %s
+                    WHERE Tickets_key = %s
+                    """
+                    val = (
+                        ticket['Title'],
+                        ticket['Project_name'],
+                        ticket['Priority'],
+                        ticket['Updated_date'],
+                        ticket['Ticket_status'],
+                        ticket['Creator_email'],
+                        ticket['Created_date'],
+                        ticket_key
+                    )
+                    self.mycursor.execute(sql, val)
+                else:
+                    # Ticket doesn't exist in the database, insert it
+                    sql = """
+                    INSERT INTO tickets_table (Tickets_key, Title, Project_name, Priority,
+                    Updated_date, Ticket_status, Creator_email, Created_date)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    val = (
+                        ticket['Tickets_key'],
+                        ticket['Title'],
+                        ticket['Project_name'],
+                        ticket['Priority'],
+                        ticket['Updated_date'],
+                        ticket['Ticket_status'],
+                        ticket['Creator_email'],
+                        ticket['Created_date']
+                    )
+                    self.mycursor.execute(sql, val)
+
             self.mysqldb.commit()
+            print("Tickets updated or inserted successfully.")
+
+            self.mycursor.close()
+            self.mysqldb.close()
+
+            return self.get_tickets_from_database(self.results_per_page_entry, self.current_page)
+
         except mysql.connector.Error as e:
-            print("Error while truncating tickets_table:", e)
+            print("Error while connecting to MySQL", e)
 
-        self.get_all_jira_tickets()
+    def get_total_pages(self, results_per_page_entry):
+        try:
+            if not self.mysqldb.is_connected():
+                self.mysqldb.ping(reconnect=True)
+                self.mysqldb = mysql.connector.connect(
+                    user='root',
+                    password='pakrashimadhura@23',
+                    host='localhost',
+                    database='jiratickets'
+                )
+                self.mycursor = self.mysqldb.cursor(buffered=True)
+            print("Cursor connection status after reconnecting:", self.mysqldb.is_connected())
 
-        self.mycursor.close()
-        self.mysqldb.close()
+            self.mycursor.execute("SELECT COUNT(*) FROM tickets_table")
+            total_tickets = self.mycursor.fetchone()[0]
+            total_pages = total_tickets // results_per_page_entry
+            if total_tickets % results_per_page_entry != 0:
+                total_pages += 1
 
-        return self.get_tickets_from_database(self.results_per_page_entry, self.current_page)
+            return total_pages
+
+        except Exception as e:
+            print("Error while calculating total pages:", e)
+            return 0
 
 
 # Instantiating the Jira class
@@ -219,17 +283,31 @@ jira = Jira()
 def show_tickets():
     try:
         results_per_page_entry = int(request.args.get('results_per_page_entry', 10))
+        current_page = int(request.args.get('page', 1))
 
         if request.args.get('fetch_tickets'):
             tickets = jira.fetch_and_store_tickets(results_per_page_entry)
-            return redirect(request.path + f"?results_per_page_entry={results_per_page_entry}")
+            return redirect(request.path + f"?results_per_page_entry={results_per_page_entry}&page={current_page}")
 
-        tickets = jira.get_tickets_from_database(results_per_page_entry, jira.current_page)
-        return render_template('tickets.html', table_data=tickets, results_per_page_entry=results_per_page_entry)
+        total_pages = jira.get_total_pages(results_per_page_entry)
+
+        if request.args.get('previous'):
+            current_page -= 1
+            if current_page < 1:
+                current_page = 1
+            return redirect(request.path + f"?results_per_page_entry={results_per_page_entry}&page={current_page}")
+
+        if request.args.get('next'):
+            current_page += 1
+            if current_page > total_pages:
+                current_page = total_pages
+            return redirect(request.path + f"?results_per_page_entry={results_per_page_entry}&page={current_page}")
+
+        tickets = jira.get_tickets_from_database(results_per_page_entry, current_page)
+        return render_template('tickets.html', table_data=tickets, results_per_page_entry=results_per_page_entry, current_page=current_page, total_pages=total_pages)
 
     except mysql.connector.Error as e:
         print("Error while connecting to MySQL", e)
-
 
 if __name__ == '__main__':
     app.debug = True
