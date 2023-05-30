@@ -35,5 +35,13 @@
             </tr>
         {% endfor %}
     </table>
+    <div>
+        {% if current_page > 1 %}
+            <a href="{{ request.path }}?results_per_page_entry={{ results_per_page_entry }}&page={{ current_page - 1 }}">Previous</a>
+        {% endif %}
+        {% if current_page < total_pages %}
+            <a href="{{ request.path }}?results_per_page_entry={{ results_per_page_entry }}&page={{ current_page + 1 }}">Next</a>
+        {% endif %}
+    </div>
 </body>
 </html>
