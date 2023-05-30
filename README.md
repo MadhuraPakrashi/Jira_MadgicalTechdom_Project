@@ -1,26 +1,33 @@
-The provided code is a Python script that includes several libraries and defines a Flask application for managing Jira tickets. Here's a breakdown of its components:
+The provided code is a Python script that interacts with Jira, a project management and issue tracking tool. It uses the Flask framework to create a web application that fetches and manages Jira tickets.
 
-    1. Importing necessary libraries: The script imports various libraries including base64, requests, json, requests.auth, Flask, and mysql.connector.
+Here is a breakdown of the code:
 
-    2. Creating a Flask application instance: An instance of the Flask application is created with the name app.
+    1. The necessary libraries are imported, including base64, requests, json, Flask, and mysql.connector.
 
-    3. Jira class: This class represents a Jira ticket management system. It includes methods for retrieving and managing Jira tickets. It also establishes a connection to a MySQL database.
+    2. An instance of the Flask application is created.
 
-    4. Flask route: The script defines a route in the Flask application using the @app.route() decorator. The route is set to the root path ("/").
+    3. The code defines a class called Jira, which encapsulates methods to interact with Jira tickets.
 
-    5. show_tickets(): This function is associated with the defined route. It retrieves the number of results per page from the request parameters and uses the Jira class to fetch and store the tickets in the MySQL database. It then renders the "tickets.html" template with the retrieved tickets and the specified number of results per page.
+    4. The Jira class constructor initializes various attributes, including Jira credentials, API endpoints, MySQL database connection details, and page variables.
 
-    6. Jira class methods: The Jira class includes several methods:
-        a. __init__(): Initializes the Jira class, sets up Jira credentials and MySQL database connection.
-        b. get_issues(): Retrieves Jira tickets by sending requests to the Jira API and returns the fetched issues.
-        c. show_previous_page(): Decreases the current page number and returns the tickets from the database for the updated page.
-        d. show_next_page(): Increases the current page number and returns the tickets from the database for the updated page.
-        e. get_tickets_from_database(): Retrieves tickets from the MySQL database based on the specified number of results per page and current page.
-        f. get_all_jira_tickets(): Retrieves all Jira tickets, inserts them into the MySQL database, and updates existing tickets.
-        g. change_ticket_status(): Changes the status of a Jira ticket and adds a comment using the Jira API.
-        h. fetch_and_store_tickets(): Fetches and stores Jira tickets into the MySQL database, truncating the existing data.
+    5. The get_issues method retrieves Jira tickets using a provided JQL (Jira Query Language) query. It makes paginated requests to the Jira API and returns a list of issues.
 
+    6. The show_previous_page and show_next_page methods update the current page number and retrieve Jira tickets from the database based on the specified number of results per page.
 
-    6. Instantiating the Jira class: An instance of the Jira class is created.
+    7. The get_tickets_from_database method retrieves Jira tickets from a MySQL database. It accepts the number of results per page and the current page number as parameters.
 
-    7. Flask application execution: The Flask application is run by calling app.run(), allowing the script to be executed as a standalone application.
+    8. The get_all_jira_tickets method fetches all Jira tickets from the Jira API and returns them as a list.
+
+    9. The change_ticket_status method updates the status of a ticket from "Open" to "Close" in Jira using the API. It requires the ticket key and a comment.
+
+    10. The fetch_and_store_tickets method fetches Jira tickets from the Jira API and stores them in a MySQL database. It also updates existing tickets in the database if they already exist.
+
+    11. The get_total_pages method calculates the total number of pages based on the number of results per page.
+
+    12. An instance of the Jira class is created.
+
+    13. The Flask route '/' is defined. It handles requests to display Jira tickets. It retrieves the specified number of results per page and current page number from the query parameters. If the fetch_tickets query parameter is present, it fetches and stores Jira tickets before redirecting to the same page. It also handles previous and next page navigation.
+
+    14. Finally, the Flask application is run in debug mode if the script is executed directly.
+
+The code sets up a web application that allows users to view and manage Jira tickets through a browser interface. It fetches tickets from the Jira API, stores them in a MySQL database, and provides pagination functionality for navigating through the tickets.
